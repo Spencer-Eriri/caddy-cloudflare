@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,8 +25,16 @@ jobs:
           tags: caddy-cloudflare:latest
           outputs: type=docker,dest=/tmp/caddy-cloudflare.tar
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Compress image
+        run: gzip /tmp/caddy-cloudflare.tar
+
+      - name: Generate tag
+        id: tag
+        run: echo "tag=build-$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: caddy-cloudflare-image
-          path: /tmp/caddy-cloudflare.tar
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Caddy Cloudflare ${{ steps.tag.outputs.tag }}
+          files: /tmp/caddy-cloudflare.tar.gz
